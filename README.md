@@ -13,6 +13,7 @@ A simple 2D Python arcade survival game built with `tkinter`.
 - Pause and resume support in the web build
 - Persistent best score tracking per player in browser storage
 - Static leaderboard stored in local browser storage for GitHub Pages deployments
+- Optional shared leaderboard mode when a remote API is configured for the static site
 
 ## How to play
 

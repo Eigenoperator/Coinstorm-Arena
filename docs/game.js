@@ -23,6 +23,7 @@ const pauseButton = document.getElementById("pause-button");
 const menuOverlay = document.getElementById("menu-overlay");
 const loginForm = document.getElementById("login-form");
 const usernameInput = document.getElementById("username");
+const LEADERBOARD_API_BASE = window.COINSTORM_CONFIG?.leaderboardApiBase || "";
 
 const keys = new Set();
 const STORAGE_KEYS = {
@@ -34,6 +35,9 @@ const STORAGE_KEYS = {
 let currentPlayer = "Guest Pilot";
 let isStarted = false;
 let isPaused = true;
+let leaderboardMode = LEADERBOARD_API_BASE
+  ? "shared online leaderboard"
+  : "static local browser storage";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -72,6 +76,16 @@ function createState() {
 let state = createState();
 let lastTime = performance.now();
 
+function isTypingIntoField(event) {
+  const target = event.target;
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target?.isContentEditable
+  );
+}
+
 function readJson(key, fallback) {
   try {
     const raw = window.localStorage.getItem(key);
@@ -97,13 +111,17 @@ function getBestScores() {
   return readJson(STORAGE_KEYS.bestScores, {});
 }
 
-function getLeaderboardEntries() {
+function getLocalLeaderboardEntries() {
   return readJson(STORAGE_KEYS.leaderboard, []);
 }
 
 function saveCurrentPlayer(name) {
   currentPlayer = sanitizeName(name) || "Guest Pilot";
-  window.localStorage.setItem(STORAGE_KEYS.currentUser, currentPlayer);
+  try {
+    window.localStorage.setItem(STORAGE_KEYS.currentUser, currentPlayer);
+  } catch {
+    statusEl.textContent = "Could not persist the current player in this browser.";
+  }
   playerNameEl.textContent = currentPlayer;
   renderBestScore();
 }
@@ -114,13 +132,12 @@ function renderBestScore() {
   bestScoreEl.textContent = `Best ${bestScore}`;
 }
 
-function renderLeaderboard() {
-  const entries = getLeaderboardEntries();
+function renderLeaderboard(entries = []) {
   leaderboardListEl.innerHTML = "";
 
   if (entries.length === 0) {
     const item = document.createElement("li");
-    item.textContent = "No runs recorded yet in this static build.";
+    item.textContent = "No runs recorded yet.";
     leaderboardListEl.appendChild(item);
     return;
   }
@@ -132,12 +149,12 @@ function renderLeaderboard() {
   });
 }
 
-function persistRun(score) {
+function persistRunLocally(score) {
   const bestScores = getBestScores();
   bestScores[currentPlayer] = Math.max(bestScores[currentPlayer] || 0, score);
   writeJson(STORAGE_KEYS.bestScores, bestScores);
 
-  const entries = getLeaderboardEntries();
+  const entries = getLocalLeaderboardEntries();
   entries.push({
     name: currentPlayer,
     score,
@@ -145,9 +162,77 @@ function persistRun(score) {
   });
   entries.sort((a, b) => b.score - a.score || a.playedAt.localeCompare(b.playedAt));
   writeJson(STORAGE_KEYS.leaderboard, entries.slice(0, 20));
+  return entries.slice(0, 20);
+}
+
+async function loadLeaderboardEntries() {
+  if (!LEADERBOARD_API_BASE) {
+    return getLocalLeaderboardEntries();
+  }
+
+  try {
+    const response = await fetch(`${LEADERBOARD_API_BASE}/leaderboard?limit=8`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+    const payload = await response.json();
+    const entries = Array.isArray(payload) ? payload : payload.entries;
+    if (!Array.isArray(entries)) {
+      throw new Error("Malformed leaderboard payload.");
+    }
+    leaderboardMode = "shared online leaderboard";
+    leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
+    return entries;
+  } catch {
+    leaderboardMode = "fallback local browser storage";
+    leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
+    statusEl.textContent = "Online leaderboard unavailable. Using local fallback.";
+    return getLocalLeaderboardEntries();
+  }
+}
+
+async function refreshLeaderboard() {
+  const entries = await loadLeaderboardEntries();
+  renderLeaderboard(entries);
+}
+
+async function persistRun(score) {
+  const localEntries = persistRunLocally(score);
+
+  if (!LEADERBOARD_API_BASE) {
+    renderBestScore();
+    renderLeaderboard(localEntries);
+    return;
+  }
+
+  try {
+    const response = await fetch(`${LEADERBOARD_API_BASE}/scores`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        name: currentPlayer,
+        score,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Request failed with ${response.status}`);
+    }
+    leaderboardMode = "shared online leaderboard";
+    leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
+    await refreshLeaderboard();
+  } catch {
+    leaderboardMode = "fallback local browser storage";
+    leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
+    renderLeaderboard(localEntries);
+    statusEl.textContent = "Score saved locally. Shared leaderboard is not reachable yet.";
+  }
 
   renderBestScore();
-  renderLeaderboard();
 }
 
 function enterStartMenu() {
@@ -353,7 +438,7 @@ function update(dt) {
       state.gameOver = true;
       statusEl.textContent = "You were hit. Press R to restart.";
       pauseButton.textContent = "Pause";
-      persistRun(state.score);
+      void persistRun(state.score);
     }
 
     return true;
@@ -456,6 +541,9 @@ function loop(now) {
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
+  if (isTypingIntoField(event)) {
+    return;
+  }
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "f", "r", "p", "w", "a", "s", "d"].includes(key)) {
     event.preventDefault();
   }
@@ -510,7 +598,7 @@ pauseButton.addEventListener("click", () => {
 });
 
 refreshBoardButton.addEventListener("click", () => {
-  renderLeaderboard();
+  void refreshLeaderboard();
   statusEl.textContent = "Leaderboard refreshed.";
 });
 
@@ -523,8 +611,8 @@ function initializeProfile() {
     playerNameEl.textContent = currentPlayer;
     renderBestScore();
   }
-  leaderboardModeEl.textContent = "Leaderboard mode: static local browser storage";
-  renderLeaderboard();
+  leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
+  void refreshLeaderboard();
 }
 
 initializeProfile();
