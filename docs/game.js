@@ -79,6 +79,7 @@ let lastTime = performance.now();
 function isTypingIntoField(event) {
   const target = event.target;
   return (
+    document.activeElement === usernameInput ||
     target instanceof HTMLInputElement ||
     target instanceof HTMLTextAreaElement ||
     target instanceof HTMLSelectElement ||
@@ -238,6 +239,7 @@ async function persistRun(score) {
 function enterStartMenu() {
   isStarted = false;
   isPaused = true;
+  keys.clear();
   pauseButton.textContent = "Pause";
   menuOverlay.classList.add("visible");
 }
