@@ -134,6 +134,31 @@ function rankEntries(entries) {
   });
 }
 
+function keepBestEntryPerPlayer(entries) {
+  const bestByName = new Map();
+  for (const entry of entries) {
+    const key = sanitizeName(entry?.name) || "Guest Pilot";
+    const normalized = {
+      name: key,
+      score: Number(entry?.score) || 0,
+      playedAt: entry?.playedAt || new Date(0).toISOString(),
+    };
+    const current = bestByName.get(key);
+    if (!current) {
+      bestByName.set(key, normalized);
+      continue;
+    }
+    if (normalized.score > current.score) {
+      bestByName.set(key, normalized);
+      continue;
+    }
+    if (normalized.score === current.score && String(normalized.playedAt) < String(current.playedAt)) {
+      bestByName.set(key, normalized);
+    }
+  }
+  return rankEntries([...bestByName.values()]);
+}
+
 function mergeEntries(...groups) {
   const merged = new Map();
   for (const group of groups) {
@@ -147,7 +172,7 @@ function mergeEntries(...groups) {
       merged.set(key, normalized);
     }
   }
-  return rankEntries([...merged.values()]);
+  return keepBestEntryPerPlayer([...merged.values()]);
 }
 
 function saveCurrentPlayer(name) {
@@ -186,17 +211,20 @@ function renderLeaderboard(entries = []) {
 
 function persistRunLocally(score) {
   const bestScores = getBestScores();
-  bestScores[currentPlayer] = Math.max(bestScores[currentPlayer] || 0, score);
+  const previousBest = bestScores[currentPlayer] || 0;
+  bestScores[currentPlayer] = Math.max(previousBest, score);
   writeJson(STORAGE_KEYS.bestScores, bestScores);
 
   const newEntry = {
     name: currentPlayer,
-    score,
+    score: bestScores[currentPlayer],
     playedAt: new Date().toISOString(),
   };
   const localEntries = mergeEntries(getLocalLeaderboardEntries(), [newEntry]).slice(0, 20);
   writeJson(STORAGE_KEYS.leaderboard, localEntries);
-  setPendingScores([...getPendingScores(), newEntry]);
+  const pending = getPendingScores().filter((entry) => entry.name !== currentPlayer);
+  pending.push(newEntry);
+  setPendingScores(keepBestEntryPerPlayer(pending));
   return { localEntries, newEntry };
 }
 

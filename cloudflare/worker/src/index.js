@@ -55,6 +55,25 @@ function rankEntries(entries) {
   });
 }
 
+function keepBestEntryPerPlayer(entries) {
+  const bestByName = new Map();
+  for (const entry of entries) {
+    const current = bestByName.get(entry.name);
+    if (!current) {
+      bestByName.set(entry.name, entry);
+      continue;
+    }
+    if (entry.score > current.score) {
+      bestByName.set(entry.name, entry);
+      continue;
+    }
+    if (entry.score === current.score && String(entry.playedAt) < String(current.playedAt)) {
+      bestByName.set(entry.name, entry);
+    }
+  }
+  return rankEntries([...bestByName.values()]);
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "*";
@@ -67,7 +86,7 @@ export default {
 
     if (request.method === "GET" && url.pathname === "/leaderboard") {
       const limit = Math.min(Number(url.searchParams.get("limit")) || 8, 20);
-      const entries = rankEntries(await readEntries(env)).slice(0, limit);
+      const entries = keepBestEntryPerPlayer(await readEntries(env)).slice(0, limit);
       return json({ entries }, 200, headers);
     }
 
@@ -95,7 +114,7 @@ export default {
         score,
         playedAt: new Date().toISOString(),
       });
-      const ranked = rankEntries(entries).slice(0, MAX_LEADERBOARD_SIZE);
+      const ranked = keepBestEntryPerPlayer(entries).slice(0, MAX_LEADERBOARD_SIZE);
       await writeEntries(env, ranked);
       return json({ ok: true, entries: ranked.slice(0, 8) }, 201, headers);
     }
