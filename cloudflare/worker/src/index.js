@@ -6,6 +6,7 @@ function json(data, status = 200, extraHeaders = {}) {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
       ...extraHeaders,
     },
   });

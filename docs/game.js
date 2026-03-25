@@ -208,6 +208,7 @@ async function loadLeaderboardEntries() {
   try {
     const response = await fetch(`${LEADERBOARD_API_BASE}/leaderboard?limit=8`, {
       headers: { Accept: "application/json" },
+      cache: "no-store",
     });
     if (!response.ok) {
       throw new Error(`Request failed with ${response.status}`);
@@ -259,6 +260,7 @@ async function flushPendingScores() {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
+        cache: "no-store",
         body: JSON.stringify({
           name: entry.name,
           score: entry.score,
@@ -291,6 +293,7 @@ async function persistRun(score) {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
+      cache: "no-store",
       body: JSON.stringify({
         name: currentPlayer,
         score,
