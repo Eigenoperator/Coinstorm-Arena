@@ -2,6 +2,11 @@
 
 A simple 2D Python arcade survival game built with `tkinter`.
 
+## 在线试玩
+
+- 在线地址：https://eigenoperator.github.io/Coinstorm-Arena/
+- 网页源码目录：[`docs/`](/home/xincheng/code/test/docs)
+
 ## How to play
 
 - Move with `WASD` or the arrow keys.
