@@ -1,3 +1,3 @@
 window.COINSTORM_CONFIG = {
-  leaderboardApiBase: "",
+  leaderboardApiBase: "https://coinstorm-arena-leaderboard.coinstormarena.workers.dev",
 };
