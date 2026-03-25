@@ -1,0 +1,11 @@
+{
+  "name": "coinstorm-arena-leaderboard",
+  "main": "src/index.js",
+  "compatibility_date": "2026-03-25",
+  "kv_namespaces": [
+    {
+      "binding": "LEADERBOARD",
+      "id": "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+    }
+  ]
+}

@@ -23,7 +23,7 @@ const pauseButton = document.getElementById("pause-button");
 const menuOverlay = document.getElementById("menu-overlay");
 const loginForm = document.getElementById("login-form");
 const usernameInput = document.getElementById("username");
-const LEADERBOARD_API_BASE = window.COINSTORM_CONFIG?.leaderboardApiBase || "";
+const LEADERBOARD_API_BASE = (window.COINSTORM_CONFIG?.leaderboardApiBase || "").replace(/\/$/, "");
 
 const keys = new Set();
 const STORAGE_KEYS = {
