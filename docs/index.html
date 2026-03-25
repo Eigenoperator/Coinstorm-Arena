@@ -22,6 +22,22 @@
             <span><i class="coin"></i> Coin</span>
             <span><i class="enemy scout"></i> Enemy</span>
           </div>
+          <div class="profile-card">
+            <p class="mini-label">SESSION</p>
+            <strong id="player-name">Guest Pilot</strong>
+            <span id="best-score">Best 0</span>
+            <span id="leaderboard-mode">Leaderboard mode: local static storage</span>
+          </div>
+          <div class="leaderboard-card">
+            <div class="leaderboard-head">
+              <div>
+                <p class="mini-label">LEADERBOARD</p>
+                <strong>Top Pilots</strong>
+              </div>
+              <button id="refresh-board" type="button">Refresh</button>
+            </div>
+            <ol id="leaderboard-list" class="leaderboard-list"></ol>
+          </div>
         </div>
         <div class="panel">
           <div class="hud">
@@ -34,16 +50,44 @@
               <span id="status">Move with WASD or arrow keys</span>
             </div>
           </div>
+          <div class="panel-actions">
+            <button id="start-button" type="button">Start Run</button>
+            <button id="pause-button" type="button">Pause</button>
+          </div>
           <canvas id="game" width="960" height="600" aria-label="Coinstorm Arena"></canvas>
           <div class="tips">
             <span>Move: WASD / Arrow keys</span>
             <span>Dash: Space</span>
             <span>Shield: F</span>
+            <span>Pause: P</span>
             <span>Restart: R</span>
           </div>
         </div>
       </section>
     </main>
+    <div id="menu-overlay" class="overlay visible" role="dialog" aria-modal="true">
+      <div class="overlay-card">
+        <p class="eyebrow">READY ROOM</p>
+        <h2>Enter your pilot name</h2>
+        <p class="overlay-copy">
+          Your name works as a lightweight sign-in for this browser session. Best
+          scores and leaderboard entries are stored in static-site local storage.
+        </p>
+        <form id="login-form" class="login-form">
+          <label for="username">Pilot name</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            maxlength="18"
+            autocomplete="nickname"
+            placeholder="SkyRunner"
+            required
+          />
+          <button type="submit">Start Mission</button>
+        </form>
+      </div>
+    </div>
     <script src="./game.js"></script>
   </body>
 </html>

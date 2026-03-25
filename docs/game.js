@@ -13,8 +13,27 @@ const scoreEl = document.getElementById("score");
 const levelEl = document.getElementById("level");
 const chargesEl = document.getElementById("charges");
 const statusEl = document.getElementById("status");
+const playerNameEl = document.getElementById("player-name");
+const bestScoreEl = document.getElementById("best-score");
+const leaderboardModeEl = document.getElementById("leaderboard-mode");
+const leaderboardListEl = document.getElementById("leaderboard-list");
+const refreshBoardButton = document.getElementById("refresh-board");
+const startButton = document.getElementById("start-button");
+const pauseButton = document.getElementById("pause-button");
+const menuOverlay = document.getElementById("menu-overlay");
+const loginForm = document.getElementById("login-form");
+const usernameInput = document.getElementById("username");
 
 const keys = new Set();
+const STORAGE_KEYS = {
+  currentUser: "coinstorm.currentUser",
+  bestScores: "coinstorm.bestScores",
+  leaderboard: "coinstorm.leaderboard",
+};
+
+let currentPlayer = "Guest Pilot";
+let isStarted = false;
+let isPaused = true;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -52,6 +71,114 @@ function createState() {
 
 let state = createState();
 let lastTime = performance.now();
+
+function readJson(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJson(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    statusEl.textContent = "Local storage is unavailable in this browser.";
+  }
+}
+
+function sanitizeName(name) {
+  return name.replace(/\s+/g, " ").trim().slice(0, 18);
+}
+
+function getBestScores() {
+  return readJson(STORAGE_KEYS.bestScores, {});
+}
+
+function getLeaderboardEntries() {
+  return readJson(STORAGE_KEYS.leaderboard, []);
+}
+
+function saveCurrentPlayer(name) {
+  currentPlayer = sanitizeName(name) || "Guest Pilot";
+  window.localStorage.setItem(STORAGE_KEYS.currentUser, currentPlayer);
+  playerNameEl.textContent = currentPlayer;
+  renderBestScore();
+}
+
+function renderBestScore() {
+  const bestScores = getBestScores();
+  const bestScore = bestScores[currentPlayer] || 0;
+  bestScoreEl.textContent = `Best ${bestScore}`;
+}
+
+function renderLeaderboard() {
+  const entries = getLeaderboardEntries();
+  leaderboardListEl.innerHTML = "";
+
+  if (entries.length === 0) {
+    const item = document.createElement("li");
+    item.textContent = "No runs recorded yet in this static build.";
+    leaderboardListEl.appendChild(item);
+    return;
+  }
+
+  entries.slice(0, 8).forEach((entry, index) => {
+    const item = document.createElement("li");
+    item.innerHTML = `<strong>#${index + 1} ${entry.name}</strong> <span>- ${entry.score} pts</span>`;
+    leaderboardListEl.appendChild(item);
+  });
+}
+
+function persistRun(score) {
+  const bestScores = getBestScores();
+  bestScores[currentPlayer] = Math.max(bestScores[currentPlayer] || 0, score);
+  writeJson(STORAGE_KEYS.bestScores, bestScores);
+
+  const entries = getLeaderboardEntries();
+  entries.push({
+    name: currentPlayer,
+    score,
+    playedAt: new Date().toISOString(),
+  });
+  entries.sort((a, b) => b.score - a.score || a.playedAt.localeCompare(b.playedAt));
+  writeJson(STORAGE_KEYS.leaderboard, entries.slice(0, 20));
+
+  renderBestScore();
+  renderLeaderboard();
+}
+
+function enterStartMenu() {
+  isStarted = false;
+  isPaused = true;
+  pauseButton.textContent = "Pause";
+  menuOverlay.classList.add("visible");
+}
+
+function closeStartMenu() {
+  menuOverlay.classList.remove("visible");
+}
+
+function startRun() {
+  reset();
+  isStarted = true;
+  isPaused = false;
+  closeStartMenu();
+  pauseButton.textContent = "Pause";
+  statusEl.textContent = "Move with WASD or arrow keys";
+}
+
+function togglePause() {
+  if (!isStarted || state.gameOver) {
+    return;
+  }
+
+  isPaused = !isPaused;
+  pauseButton.textContent = isPaused ? "Resume" : "Pause";
+  statusEl.textContent = isPaused ? "Paused." : "Back in action.";
+}
 
 function addPoints(points) {
   state.score += points;
@@ -176,7 +303,7 @@ function outOfBounds(enemy) {
 }
 
 function update(dt) {
-  if (state.gameOver) {
+  if (!isStarted || isPaused || state.gameOver) {
     return;
   }
 
@@ -225,6 +352,8 @@ function update(dt) {
       }
       state.gameOver = true;
       statusEl.textContent = "You were hit. Press R to restart.";
+      pauseButton.textContent = "Pause";
+      persistRun(state.score);
     }
 
     return true;
@@ -290,6 +419,22 @@ function draw() {
     ctx.fillText("Press R to restart", 388, 348);
   }
 
+  if (!isStarted) {
+    ctx.fillStyle = "rgba(3, 7, 18, 0.55)";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "bold 34px Trebuchet MS";
+    ctx.fillText("Ready for launch", 350, 270);
+    ctx.font = "18px Trebuchet MS";
+    ctx.fillText("Open the menu and start your run", 352, 308);
+  } else if (isPaused && !state.gameOver) {
+    ctx.fillStyle = "rgba(3, 7, 18, 0.52)";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "bold 32px Trebuchet MS";
+    ctx.fillText("Paused", 430, 286);
+  }
+
   scoreEl.textContent = `Score ${state.score}`;
   levelEl.textContent = `Level ${state.level}`;
   chargesEl.textContent = `Charges ${state.charges}`;
@@ -297,6 +442,7 @@ function draw() {
 
 function reset() {
   state = createState();
+  keys.clear();
   statusEl.textContent = "Move with WASD or arrow keys";
 }
 
@@ -310,8 +456,11 @@ function loop(now) {
 
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
-  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "f", "r", "w", "a", "s", "d"].includes(key)) {
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "f", "r", "p", "w", "a", "s", "d"].includes(key)) {
     event.preventDefault();
+  }
+  if (menuOverlay.classList.contains("visible") && key !== "enter") {
+    return;
   }
   if (key === " ") {
     useDash();
@@ -322,7 +471,11 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (key === "r") {
-    reset();
+    startRun();
+    return;
+  }
+  if (key === "p") {
+    togglePause();
     return;
   }
   keys.add(key);
@@ -332,5 +485,48 @@ window.addEventListener("keyup", (event) => {
   keys.delete(event.key.toLowerCase());
 });
 
+loginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = sanitizeName(usernameInput.value);
+  if (!name) {
+    usernameInput.focus();
+    return;
+  }
+  saveCurrentPlayer(name);
+  startRun();
+});
+
+startButton.addEventListener("click", () => {
+  if (!currentPlayer || currentPlayer === "Guest Pilot") {
+    enterStartMenu();
+    usernameInput.focus();
+    return;
+  }
+  startRun();
+});
+
+pauseButton.addEventListener("click", () => {
+  togglePause();
+});
+
+refreshBoardButton.addEventListener("click", () => {
+  renderLeaderboard();
+  statusEl.textContent = "Leaderboard refreshed.";
+});
+
+function initializeProfile() {
+  const savedPlayer = sanitizeName(window.localStorage.getItem(STORAGE_KEYS.currentUser) || "");
+  if (savedPlayer) {
+    saveCurrentPlayer(savedPlayer);
+    usernameInput.value = savedPlayer;
+  } else {
+    playerNameEl.textContent = currentPlayer;
+    renderBestScore();
+  }
+  leaderboardModeEl.textContent = "Leaderboard mode: static local browser storage";
+  renderLeaderboard();
+}
+
+initializeProfile();
 draw();
 requestAnimationFrame(loop);

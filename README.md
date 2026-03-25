@@ -7,6 +7,13 @@ A simple 2D Python arcade survival game built with `tkinter`.
 - Live demo: https://eigenoperator.github.io/Coinstorm-Arena/
 - Web source: [`docs/`](/home/xincheng/code/test/docs)
 
+## Browser Features
+
+- Start menu with pilot-name sign-in for each browser session
+- Pause and resume support in the web build
+- Persistent best score tracking per player in browser storage
+- Static leaderboard stored in local browser storage for GitHub Pages deployments
+
 ## How to play
 
 - Move with `WASD` or the arrow keys.

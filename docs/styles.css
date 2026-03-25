@@ -77,6 +77,13 @@ h1 {
   color: var(--text);
 }
 
+.mini-label {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
 .legend {
   display: grid;
   gap: 12px;
@@ -114,6 +121,68 @@ h1 {
   background: #60a5fa;
 }
 
+.profile-card,
+.leaderboard-card {
+  margin-top: 22px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.profile-card strong,
+.profile-card span {
+  display: block;
+}
+
+.profile-card span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.leaderboard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.leaderboard-head button,
+.panel-actions button,
+.login-form button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font: inherit;
+  color: #08111f;
+  background: linear-gradient(135deg, #facc15, #f59e0b);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+  box-shadow: 0 14px 26px rgba(245, 158, 11, 0.25);
+}
+
+.leaderboard-head button:hover,
+.panel-actions button:hover,
+.login-form button:hover {
+  transform: translateY(-1px);
+}
+
+.leaderboard-list {
+  margin: 14px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.leaderboard-list li {
+  color: var(--muted);
+}
+
+.leaderboard-list strong {
+  color: var(--text);
+}
+
 .panel {
   padding: 16px;
 }
@@ -139,6 +208,12 @@ h1 {
   font-size: 14px;
 }
 
+.panel-actions {
+  display: flex;
+  gap: 12px;
+  padding: 0 8px 12px;
+}
+
 canvas {
   display: block;
   width: 100%;
@@ -157,6 +232,68 @@ canvas {
   color: var(--muted);
 }
 
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3, 7, 18, 0.72);
+  backdrop-filter: blur(12px);
+}
+
+.overlay.visible {
+  display: grid;
+}
+
+.overlay-card {
+  width: min(520px, 100%);
+  padding: 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(250, 204, 21, 0.16), transparent 30%),
+    rgba(8, 17, 31, 0.96);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.overlay-card h2 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.overlay-copy {
+  margin: 14px 0 0;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.login-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.login-form label {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.login-form input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 14px 16px;
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.login-form input:focus {
+  outline: 2px solid rgba(250, 204, 21, 0.38);
+  outline-offset: 0;
+}
+
 @media (max-width: 980px) {
   .hero {
     grid-template-columns: 1fr;
@@ -170,5 +307,9 @@ canvas {
   .hero-copy,
   .panel {
     border-radius: 20px;
+  }
+
+  .panel-actions {
+    flex-wrap: wrap;
   }
 }
