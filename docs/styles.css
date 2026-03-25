@@ -70,6 +70,13 @@ h1 {
   color: var(--muted);
 }
 
+.summary code {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
 .legend {
   display: grid;
   gap: 12px;

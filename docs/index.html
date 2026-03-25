@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,35 +10,36 @@
     <main class="page">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">在线版本</p>
+          <p class="eyebrow">BROWSER EDITION</p>
           <h1>Coinstorm Arena</h1>
           <p class="summary">
-            躲避四面八方冲来的敌人，拾取黄色金币，攒满 10 分获得一次技能机会。
-            `Space` 冲刺，`F` 护盾。
+            Survive waves of enemies attacking from every direction, collect yellow
+            coins, and earn one skill charge for every 10 points. Press
+            <code>Space</code> to dash and <code>F</code> to trigger a shield.
           </p>
           <div class="legend">
-            <span><i class="player"></i> 玩家</span>
-            <span><i class="coin"></i> 金币</span>
-            <span><i class="enemy scout"></i> 敌人</span>
+            <span><i class="player"></i> Player</span>
+            <span><i class="coin"></i> Coin</span>
+            <span><i class="enemy scout"></i> Enemy</span>
           </div>
         </div>
         <div class="panel">
           <div class="hud">
             <div>
-              <strong id="score">分数 0</strong>
-              <span id="level">等级 1</span>
+              <strong id="score">Score 0</strong>
+              <span id="level">Level 1</span>
             </div>
             <div>
-              <strong id="charges">技能次数 0</strong>
-              <span id="status">方向键/WASD 移动</span>
+              <strong id="charges">Charges 0</strong>
+              <span id="status">Move with WASD or arrow keys</span>
             </div>
           </div>
           <canvas id="game" width="960" height="600" aria-label="Coinstorm Arena"></canvas>
           <div class="tips">
-            <span>移动：WASD / 方向键</span>
-            <span>冲刺：Space</span>
-            <span>护盾：F</span>
-            <span>重新开始：R</span>
+            <span>Move: WASD / Arrow keys</span>
+            <span>Dash: Space</span>
+            <span>Shield: F</span>
+            <span>Restart: R</span>
           </div>
         </div>
       </section>

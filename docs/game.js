@@ -133,7 +133,7 @@ function spawnEnemy() {
 
 function useDash() {
   if (state.charges <= 0) {
-    statusEl.textContent = "技能次数不足，先去拿分。";
+    statusEl.textContent = "You need one skill charge to dash.";
     return;
   }
 
@@ -148,22 +148,22 @@ function useDash() {
   state.player.x = clamp(state.player.x + dx * DASH_DISTANCE, 0, WIDTH - PLAYER_SIZE);
   state.player.y = clamp(state.player.y + dy * DASH_DISTANCE, 0, HEIGHT - PLAYER_SIZE);
   state.charges -= 1;
-  statusEl.textContent = "已释放冲刺。";
+  statusEl.textContent = "Dash activated.";
 }
 
 function useShield() {
   if (state.charges <= 0) {
-    statusEl.textContent = "技能次数不足，先去拿分。";
+    statusEl.textContent = "You need one skill charge to shield.";
     return;
   }
   if (state.player.shieldTimer > 0) {
-    statusEl.textContent = "护盾已经在生效。";
+    statusEl.textContent = "Shield is already active.";
     return;
   }
 
   state.player.shieldTimer = SHIELD_DURATION;
   state.charges -= 1;
-  statusEl.textContent = "护盾已开启。";
+  statusEl.textContent = "Shield activated.";
 }
 
 function outOfBounds(enemy) {
@@ -224,7 +224,7 @@ function update(dt) {
         return false;
       }
       state.gameOver = true;
-      statusEl.textContent = "你被击中了，按 R 重新开始。";
+      statusEl.textContent = "You were hit. Press R to restart.";
     }
 
     return true;
@@ -233,7 +233,7 @@ function update(dt) {
   state.coins = state.coins.filter((coin) => {
     if (rectsOverlap(state.player, coin)) {
       addPoints(coin.value);
-      statusEl.textContent = "拾取金币，继续冲。";
+      statusEl.textContent = "Coin collected. Keep moving.";
       return false;
     }
     return true;
@@ -286,18 +286,18 @@ function draw() {
     ctx.font = "bold 34px Trebuchet MS";
     ctx.fillText("Game Over", 380, 275);
     ctx.font = "18px Trebuchet MS";
-    ctx.fillText(`最终分数 ${state.score}`, 420, 316);
-    ctx.fillText("按 R 重新开始", 405, 348);
+    ctx.fillText(`Final score ${state.score}`, 406, 316);
+    ctx.fillText("Press R to restart", 388, 348);
   }
 
-  scoreEl.textContent = `分数 ${state.score}`;
-  levelEl.textContent = `等级 ${state.level}`;
-  chargesEl.textContent = `技能次数 ${state.charges}`;
+  scoreEl.textContent = `Score ${state.score}`;
+  levelEl.textContent = `Level ${state.level}`;
+  chargesEl.textContent = `Charges ${state.charges}`;
 }
 
 function reset() {
   state = createState();
-  statusEl.textContent = "方向键/WASD 移动";
+  statusEl.textContent = "Move with WASD or arrow keys";
 }
 
 function loop(now) {
