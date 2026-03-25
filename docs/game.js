@@ -30,6 +30,7 @@ const STORAGE_KEYS = {
   currentUser: "coinstorm.currentUser",
   bestScores: "coinstorm.bestScores",
   leaderboard: "coinstorm.leaderboard",
+  pendingScores: "coinstorm.pendingScores",
 };
 
 let currentPlayer = "Guest Pilot";
@@ -116,6 +117,39 @@ function getLocalLeaderboardEntries() {
   return readJson(STORAGE_KEYS.leaderboard, []);
 }
 
+function getPendingScores() {
+  return readJson(STORAGE_KEYS.pendingScores, []);
+}
+
+function setPendingScores(entries) {
+  writeJson(STORAGE_KEYS.pendingScores, entries);
+}
+
+function rankEntries(entries) {
+  return [...entries].sort((a, b) => {
+    if ((b.score || 0) !== (a.score || 0)) {
+      return (b.score || 0) - (a.score || 0);
+    }
+    return String(a.playedAt || "").localeCompare(String(b.playedAt || ""));
+  });
+}
+
+function mergeEntries(...groups) {
+  const merged = new Map();
+  for (const group of groups) {
+    for (const entry of group) {
+      const normalized = {
+        name: sanitizeName(entry?.name) || "Guest Pilot",
+        score: Number(entry?.score) || 0,
+        playedAt: entry?.playedAt || new Date(0).toISOString(),
+      };
+      const key = `${normalized.name}|${normalized.score}|${normalized.playedAt}`;
+      merged.set(key, normalized);
+    }
+  }
+  return rankEntries([...merged.values()]);
+}
+
 function saveCurrentPlayer(name) {
   currentPlayer = sanitizeName(name) || "Guest Pilot";
   try {
@@ -155,20 +189,20 @@ function persistRunLocally(score) {
   bestScores[currentPlayer] = Math.max(bestScores[currentPlayer] || 0, score);
   writeJson(STORAGE_KEYS.bestScores, bestScores);
 
-  const entries = getLocalLeaderboardEntries();
-  entries.push({
+  const newEntry = {
     name: currentPlayer,
     score,
     playedAt: new Date().toISOString(),
-  });
-  entries.sort((a, b) => b.score - a.score || a.playedAt.localeCompare(b.playedAt));
-  writeJson(STORAGE_KEYS.leaderboard, entries.slice(0, 20));
-  return entries.slice(0, 20);
+  };
+  const localEntries = mergeEntries(getLocalLeaderboardEntries(), [newEntry]).slice(0, 20);
+  writeJson(STORAGE_KEYS.leaderboard, localEntries);
+  setPendingScores([...getPendingScores(), newEntry]);
+  return { localEntries, newEntry };
 }
 
 async function loadLeaderboardEntries() {
   if (!LEADERBOARD_API_BASE) {
-    return getLocalLeaderboardEntries();
+    return mergeEntries(getLocalLeaderboardEntries(), getPendingScores());
   }
 
   try {
@@ -185,26 +219,68 @@ async function loadLeaderboardEntries() {
     }
     leaderboardMode = "shared online leaderboard";
     leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
-    return entries;
+    const mergedEntries = mergeEntries(
+      entries,
+      getLocalLeaderboardEntries(),
+      getPendingScores(),
+    ).slice(0, 20);
+    writeJson(STORAGE_KEYS.leaderboard, mergedEntries);
+    return mergedEntries;
   } catch {
     leaderboardMode = "fallback local browser storage";
     leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
     statusEl.textContent = "Online leaderboard unavailable. Using local fallback.";
-    return getLocalLeaderboardEntries();
+    return mergeEntries(getLocalLeaderboardEntries(), getPendingScores());
   }
 }
 
 async function refreshLeaderboard() {
+  await flushPendingScores();
   const entries = await loadLeaderboardEntries();
   renderLeaderboard(entries);
 }
 
+async function flushPendingScores() {
+  if (!LEADERBOARD_API_BASE) {
+    return;
+  }
+
+  const pending = getPendingScores();
+  if (pending.length === 0) {
+    return;
+  }
+
+  const remaining = [];
+  for (const entry of pending) {
+    try {
+      const response = await fetch(`${LEADERBOARD_API_BASE}/scores`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: entry.name,
+          score: entry.score,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Request failed with ${response.status}`);
+      }
+    } catch {
+      remaining.push(entry);
+    }
+  }
+
+  setPendingScores(remaining);
+}
+
 async function persistRun(score) {
-  const localEntries = persistRunLocally(score);
+  const { localEntries, newEntry } = persistRunLocally(score);
+  renderBestScore();
+  renderLeaderboard(localEntries);
 
   if (!LEADERBOARD_API_BASE) {
-    renderBestScore();
-    renderLeaderboard(localEntries);
     return;
   }
 
@@ -223,17 +299,32 @@ async function persistRun(score) {
     if (!response.ok) {
       throw new Error(`Request failed with ${response.status}`);
     }
+    const payload = await response.json();
+    const remoteEntries = Array.isArray(payload) ? payload : payload.entries;
+    const mergedEntries = mergeEntries(
+      Array.isArray(remoteEntries) ? remoteEntries : [],
+      getLocalLeaderboardEntries(),
+    ).slice(0, 20);
+    writeJson(STORAGE_KEYS.leaderboard, mergedEntries);
+    setPendingScores(
+      getPendingScores().filter((entry) => {
+        return !(
+          entry.name === newEntry.name &&
+          entry.score === newEntry.score &&
+          entry.playedAt === newEntry.playedAt
+        );
+      }),
+    );
     leaderboardMode = "shared online leaderboard";
     leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
-    await refreshLeaderboard();
+    renderLeaderboard(mergedEntries);
+    statusEl.textContent = "Score synced to the global leaderboard.";
   } catch {
     leaderboardMode = "fallback local browser storage";
     leaderboardModeEl.textContent = `Leaderboard mode: ${leaderboardMode}`;
     renderLeaderboard(localEntries);
-    statusEl.textContent = "Score saved locally. Shared leaderboard is not reachable yet.";
+    statusEl.textContent = "Score saved locally and queued for leaderboard sync.";
   }
-
-  renderBestScore();
 }
 
 function enterStartMenu() {
