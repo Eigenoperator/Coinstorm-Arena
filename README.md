@@ -21,16 +21,18 @@ The repository includes a Cloudflare Worker backend for a real shared leaderboar
 
 - Worker source: [`cloudflare/worker/src/index.js`](/home/xincheng/code/test/cloudflare/worker/src/index.js)
 - Worker config: [`cloudflare/worker/wrangler.jsonc`](/home/xincheng/code/test/cloudflare/worker/wrangler.jsonc)
+- Worker package: [`cloudflare/worker/package.json`](/home/xincheng/code/test/cloudflare/worker/package.json)
 - Frontend config: [`docs/config.js`](/home/xincheng/code/test/docs/config.js)
 - API contract: [`docs/leaderboard-api.md`](/home/xincheng/code/test/docs/leaderboard-api.md)
 
 To enable the shared leaderboard:
 
-1. Create a Cloudflare KV namespace.
-2. Put the namespace ID into [`cloudflare/worker/wrangler.jsonc`](/home/xincheng/code/test/cloudflare/worker/wrangler.jsonc).
-3. Deploy the worker with Wrangler.
-4. Set `leaderboardApiBase` in [`docs/config.js`](/home/xincheng/code/test/docs/config.js) to your Worker URL.
-5. Push the updated static site so the browser build uses the live API.
+1. Install dependencies in [`cloudflare/worker/`](/home/xincheng/code/test/cloudflare/worker/): `npm install`
+2. Authenticate Wrangler: `npx wrangler login`
+3. Deploy the worker from [`cloudflare/worker/`](/home/xincheng/code/test/cloudflare/worker/): `npm run deploy`
+4. If Wrangler auto-provisions KV on first deploy, keep the updated [`cloudflare/worker/wrangler.jsonc`](/home/xincheng/code/test/cloudflare/worker/wrangler.jsonc). If not, create a KV namespace with `npx wrangler kv namespace create LEADERBOARD` and paste the returned ID into the config.
+5. Set `leaderboardApiBase` in [`docs/config.js`](/home/xincheng/code/test/docs/config.js) to your Worker URL.
+6. Push the updated static site so the browser build uses the live API.
 
 ## How to play
 
